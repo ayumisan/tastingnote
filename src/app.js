@@ -441,7 +441,6 @@ function loadNoteIntoForm(note) {
 function resetForm() {
   document.getElementById('record-form').reset();
   currentRating = 0;
-  currentPhoto  = null;
   selectedTags  = [];
   editingId     = null;
   currentPhotos = [];
