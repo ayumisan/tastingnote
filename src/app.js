@@ -601,7 +601,6 @@ function init() {
     if (!beanName) return;
 
     const fields = {
-      photo:      currentPhoto,
       beanName,
       roaster:    document.getElementById('roaster').value.trim(),
       origin:     document.getElementById('origin').value.trim(),
