@@ -48,13 +48,22 @@
           <label>写真（複数枚可）</label>
           <input type="file" id="photo-input" accept="image/*" multiple hidden>
           <div id="photo-thumbnails" class="photo-thumbnails"></div>
-          <button type="button" class="photo-add-btn" id="photo-add-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-              <circle cx="12" cy="13" r="4"/>
-            </svg>
-            <span>タップして写真を追加</span>
-          </button>
+          <div class="photo-action-row">
+            <button type="button" class="photo-add-btn" id="photo-add-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              <span>写真を追加</span>
+            </button>
+            <button type="button" class="scan-btn" id="scan-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/>
+                <rect x="7" y="7" width="10" height="10" rx="1"/>
+              </svg>
+              <span>ラベルをスキャン</span>
+            </button>
+          </div>
         </div>
 
         <div class="field">
@@ -231,6 +240,27 @@
     </section>
   </main>
 
+  <!-- OCR dialog -->
+  <dialog id="ocr-dialog">
+    <div class="ocr-header">
+      <span class="ocr-title">ラベルスキャン</span>
+      <button id="ocr-close" aria-label="閉じる">×</button>
+    </div>
+    <div id="ocr-progress-wrap" class="ocr-progress-wrap">
+      <div class="ocr-progress-bar"><div id="ocr-progress-fill"></div></div>
+      <p id="ocr-status-text">言語データを読み込み中...</p>
+    </div>
+    <textarea id="ocr-textarea" rows="7" placeholder="認識結果がここに表示されます" spellcheck="false"></textarea>
+    <p class="ocr-hint">テキストを選択してからボタンを押すか、そのまま全文を割り当て</p>
+    <div class="ocr-assign-btns">
+      <button type="button" class="ocr-assign" data-field="bean-name">豆の名前</button>
+      <button type="button" class="ocr-assign" data-field="roaster">ロースター</button>
+      <button type="button" class="ocr-assign" data-field="origin">産地</button>
+      <button type="button" class="ocr-assign" data-field="producer">農園・精製所</button>
+      <button type="button" class="ocr-assign" data-field="memo" data-append="true">メモに追加</button>
+    </div>
+  </dialog>
+
   <!-- Delete confirm dialog -->
   <dialog id="confirm-dialog">
     <p>この記録を削除しますか？</p>
@@ -240,6 +270,7 @@
     </div>
   </dialog>
 
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
   <script src="src/app.js"></script>
 </body>
 </html>
