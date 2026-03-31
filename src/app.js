@@ -2,12 +2,20 @@
 
 // ── Constants ────────────────────────────────────────────────
 const STORAGE_KEY = 'tastingnote:notes';
+const TAGS_KEY    = 'tastingnote:tags';
 const MAX_PHOTO_PX = 800;
 
 const ROAST_LABELS = ['', '浅煎り', '中浅煎り', '中煎り', '中深煎り', '深煎り'];
+const PRESET_TAGS  = [
+  'フルーティー', 'ベリー系', 'シトラス', 'フローラル',
+  'チョコレート', 'キャラメル', 'ナッティ', 'バニラ',
+  'スパイシー', 'ハーブ', 'アーシー', 'ウッディ',
+];
 
 // ── State ────────────────────────────────────────────────────
 let notes = [];
+let masterTags   = [...PRESET_TAGS]; // all known tags
+let selectedTags = [];               // tags for current form
 let currentRating = 0;
 let currentPhoto = null; // base64 string or null
 let pendingDeleteId = null;
@@ -26,6 +34,100 @@ function saveNotes() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
   } catch (e) {
     showToast('保存に失敗しました（容量不足の可能性があります）');
+  }
+}
+
+// ── Tag storage ───────────────────────────────────────────────
+function loadMasterTags() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(TAGS_KEY) || 'null');
+    if (Array.isArray(saved) && saved.length > 0) masterTags = saved;
+  } catch { /* use preset */ }
+}
+
+function saveMasterTags() {
+  localStorage.setItem(TAGS_KEY, JSON.stringify(masterTags));
+}
+
+function addToMaster(tag) {
+  if (!masterTags.includes(tag)) {
+    masterTags.push(tag);
+    saveMasterTags();
+  }
+}
+
+// ── Tag UI ────────────────────────────────────────────────────
+function renderSelectedTags() {
+  const container = document.getElementById('selected-tags');
+  container.innerHTML = '';
+  selectedTags.forEach(tag => {
+    const chip = document.createElement('span');
+    chip.className = 'flavor-chip';
+    chip.innerHTML = `${escHtml(tag)}<button type="button" aria-label="${escHtml(tag)}を削除">×</button>`;
+    chip.querySelector('button').addEventListener('click', () => {
+      selectedTags = selectedTags.filter(t => t !== tag);
+      renderSelectedTags();
+    });
+    container.appendChild(chip);
+  });
+}
+
+function selectTag(tag) {
+  if (!selectedTags.includes(tag)) {
+    selectedTags.push(tag);
+    addToMaster(tag);
+    renderSelectedTags();
+  }
+  closePicker();
+}
+
+function openPicker() {
+  const picker = document.getElementById('tag-picker');
+  picker.hidden = false;
+  const input = document.getElementById('tag-input');
+  input.value = '';
+  renderSuggestions('');
+  input.focus();
+}
+
+function closePicker() {
+  document.getElementById('tag-picker').hidden = true;
+  document.getElementById('tag-input').value = '';
+}
+
+function renderSuggestions(query) {
+  const box = document.getElementById('tag-suggestions');
+  box.innerHTML = '';
+  const q = query.trim().toLowerCase();
+
+  const candidates = masterTags.filter(t =>
+    !selectedTags.includes(t) &&
+    (q === '' || t.toLowerCase().includes(q))
+  );
+
+  candidates.forEach(tag => {
+    const item = document.createElement('div');
+    item.className = 'tag-suggestion-item';
+    item.textContent = tag;
+    item.addEventListener('mousedown', e => { e.preventDefault(); selectTag(tag); });
+    box.appendChild(item);
+  });
+
+  // "新しく追加" option when query doesn't exactly match any master tag
+  const exactExists = masterTags.some(t => t.toLowerCase() === q);
+  if (q && !exactExists) {
+    const item = document.createElement('div');
+    item.className = 'tag-suggestion-item create';
+    item.textContent = `「${query.trim()}」を追加`;
+    item.addEventListener('mousedown', e => { e.preventDefault(); selectTag(query.trim()); });
+    box.appendChild(item);
+  }
+
+  if (box.children.length === 0) {
+    const item = document.createElement('div');
+    item.className = 'tag-suggestion-item no-result';
+    item.textContent = '候補がありません';
+    box.appendChild(item);
   }
 }
 
@@ -184,7 +286,7 @@ function renderList() {
 
   let filtered = notes.filter(n => {
     if (!query) return true;
-    return [n.beanName, n.roaster, n.origin].some(
+    return [n.beanName, n.roaster, n.origin, ...(n.tags || [])].some(
       v => v && v.toLowerCase().includes(query)
     );
   });
@@ -252,6 +354,7 @@ function buildCard(note) {
       <svg viewBox="0 0 160 160" width="160" height="160"></svg>
     </div>
     ${stars ? `<div class="card-stars">${stars}</div>` : ''}
+    ${(note.tags || []).length ? `<div class="card-flavor-tags">${(note.tags).map(t => `<span class="card-flavor-chip">${escHtml(t)}</span>`).join('')}</div>` : ''}
     ${note.memo ? `<p class="card-memo">${escHtml(note.memo)}</p>` : ''}
   `;
 
@@ -283,11 +386,14 @@ function resetForm() {
   document.getElementById('record-form').reset();
   currentRating = 0;
   currentPhoto  = null;
+  selectedTags  = [];
   document.getElementById('photo-preview').hidden = true;
   document.getElementById('photo-placeholder').hidden = false;
   document.getElementById('roast-label').textContent = ROAST_LABELS[3];
   renderStars(document.getElementById('star-rating'), 0);
   refreshFormRadar();
+  renderSelectedTags();
+  closePicker();
   ['bitterness', 'acidity', 'sweetness', 'body'].forEach(k => {
     document.getElementById(`val-${k}`).textContent = '3/5';
   });
@@ -307,8 +413,37 @@ function switchTab(name) {
 // ── Init ──────────────────────────────────────────────────────
 function init() {
   loadNotes();
+  loadMasterTags();
   updateCount();
   refreshFormRadar();
+
+  // Tag picker
+  document.getElementById('tag-add-btn').addEventListener('click', () => {
+    const picker = document.getElementById('tag-picker');
+    picker.hidden ? openPicker() : closePicker();
+  });
+  document.getElementById('tag-input').addEventListener('input', e => {
+    renderSuggestions(e.target.value);
+  });
+  document.getElementById('tag-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = e.target.value.trim();
+      if (val) selectTag(val);
+    }
+    if (e.key === 'Escape') closePicker();
+  });
+  document.addEventListener('click', e => {
+    const picker  = document.getElementById('tag-picker');
+    const addBtn  = document.getElementById('tag-add-btn');
+    const selTags = document.getElementById('selected-tags');
+    if (!picker.hidden &&
+        !picker.contains(e.target) &&
+        e.target !== addBtn &&
+        !selTags.contains(e.target)) {
+      closePicker();
+    }
+  });
 
   // Tab switching
   document.querySelectorAll('.tab').forEach(btn => {
@@ -382,6 +517,7 @@ function init() {
       sweetness:  Number(document.getElementById('sl-sweetness').value),
       body:       Number(document.getElementById('sl-body').value),
       rating:     currentRating,
+      tags:       [...selectedTags],
       memo:       document.getElementById('memo').value.trim(),
     };
 

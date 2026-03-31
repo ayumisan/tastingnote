@@ -130,6 +130,19 @@
         </div>
 
         <div class="field">
+          <label>フレーバータグ</label>
+          <div id="selected-tags" class="selected-tags"></div>
+          <button type="button" class="tag-add-btn" id="tag-add-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            フレーバーを追加
+          </button>
+          <div class="tag-picker" id="tag-picker" hidden>
+            <input type="text" id="tag-input" placeholder="タグを入力..." autocomplete="off" maxlength="30">
+            <div id="tag-suggestions" class="tag-suggestions"></div>
+          </div>
+        </div>
+
+        <div class="field">
           <label>お気に入り度</label>
           <div class="star-rating" id="star-rating" role="group" aria-label="お気に入り度">
             <button type="button" class="star" data-value="1" aria-label="星1">☆</button>
