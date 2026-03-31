@@ -476,7 +476,7 @@ function loadNoteIntoForm(note) {
   ['bitterness', 'acidity', 'sweetness', 'body'].forEach(k => {
     const val = note[k] || 3;
     document.getElementById(`sl-${k}`).value = val;
-    document.getElementById(`val-${k}`).textContent = `${val}/5`;
+    document.getElementById(`val-${k}`).textContent = `${parseFloat(val).toFixed(1)}/5`;
   });
   refreshFormRadar();
 
@@ -516,7 +516,7 @@ function resetForm() {
   renderSelectedTags();
   closePicker();
   ['bitterness', 'acidity', 'sweetness', 'body'].forEach(k => {
-    document.getElementById(`val-${k}`).textContent = '3/5';
+    document.getElementById(`val-${k}`).textContent = '3.0/5';
   });
 }
 
@@ -601,7 +601,7 @@ function init() {
   // Flavor sliders
   ['bitterness', 'acidity', 'sweetness', 'body'].forEach(key => {
     document.getElementById(`sl-${key}`).addEventListener('input', e => {
-      document.getElementById(`val-${key}`).textContent = `${e.target.value}/5`;
+      document.getElementById(`val-${key}`).textContent = `${parseFloat(e.target.value).toFixed(1)}/5`;
       refreshFormRadar();
     });
   });
