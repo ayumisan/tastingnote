@@ -381,6 +381,21 @@ input[type="range"]::-moz-range-thumb {
 .sort-row svg { width: 18px; height: 18px; color: var(--text-light); flex-shrink: 0; }
 .sort-row .select-wrapper { flex: 1; }
 
+/* ── Date range filter ───────────────────────────────── */
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.date-range svg { width: 18px; height: 18px; color: var(--text-light); flex-shrink: 0; }
+.date-range input[type="date"] {
+  flex: 1;
+  padding: 9px 10px;
+  font-size: 0.85rem;
+  min-width: 0;
+}
+.date-sep { color: var(--text-light); font-size: 0.9rem; flex-shrink: 0; }
+
 /* ── Note cards ──────────────────────────────────────── */
 #notes-list { display: flex; flex-direction: column; gap: 14px; }
 .note-card {

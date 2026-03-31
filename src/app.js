@@ -215,6 +215,10 @@ function diamond(cx, cy, r) {
 
 function clamp(v, min, max) { return Math.min(max, Math.max(min, Number(v) || min)); }
 
+function todayStr() {
+  return new Date().toLocaleDateString('sv'); // YYYY-MM-DD
+}
+
 // ── Process field helpers ─────────────────────────────────────
 function getProcessValue() {
   const sel = document.getElementById('process').value;
@@ -301,16 +305,19 @@ function showToast(msg) {
 
 // ── Render note list ──────────────────────────────────────────
 function renderList() {
-  const query  = document.getElementById('search-input').value.toLowerCase();
-  const sort   = document.getElementById('sort-select').value;
-  const listEl = document.getElementById('notes-list');
+  const query    = document.getElementById('search-input').value.toLowerCase();
+  const sort     = document.getElementById('sort-select').value;
+  const dateFrom = document.getElementById('date-from').value;
+  const dateTo   = document.getElementById('date-to').value;
+  const listEl   = document.getElementById('notes-list');
   const emptyMsg = document.getElementById('empty-msg');
 
   let filtered = notes.filter(n => {
-    if (!query) return true;
-    return [n.beanName, n.roaster, n.origin, ...(n.tags || [])].some(
-      v => v && v.toLowerCase().includes(query)
-    );
+    if (query && ![n.beanName, n.roaster, n.origin, ...(n.tags || [])].some(
+      v => v && v.toLowerCase().includes(query))) return false;
+    if (dateFrom && (n.drinkDate || '') < dateFrom) return false;
+    if (dateTo   && (n.drinkDate || '') > dateTo)   return false;
+    return true;
   });
 
   filtered = [...filtered].sort((a, b) => {
@@ -334,9 +341,9 @@ function buildCard(note) {
   card.className = 'note-card';
   card.dataset.id = note.id;
 
-  const dateStr = new Date(note.createdAt).toLocaleDateString('ja-JP', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-  }).replace(/\//g, '/');
+  const dateStr = note.drinkDate
+    ? note.drinkDate.replace(/-/g, '/')
+    : new Date(note.createdAt).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '/');
 
   // Stars string
   const stars = note.rating
@@ -456,6 +463,7 @@ function loadNoteIntoForm(note) {
 
   document.getElementById('memo').value = note.memo || '';
   setProcessValue(note.process || '');
+  document.getElementById('drink-date').value = note.drinkDate || todayStr();
   document.getElementById('submit-label').textContent = '更新する';
 }
 
@@ -466,6 +474,7 @@ function resetForm() {
   currentPhoto  = null;
   selectedTags  = [];
   editingId     = null;
+  document.getElementById('drink-date').value = todayStr();
   document.getElementById('photo-preview').hidden = true;
   document.getElementById('photo-placeholder').hidden = false;
   document.getElementById('roast-label').textContent = ROAST_LABELS[3];
@@ -579,8 +588,10 @@ function init() {
     });
   });
 
-  // Search & sort
+  // Search, date range & sort
   document.getElementById('search-input').addEventListener('input', renderList);
+  document.getElementById('date-from').addEventListener('change', renderList);
+  document.getElementById('date-to').addEventListener('change', renderList);
   document.getElementById('sort-select').addEventListener('change', renderList);
 
   // Form submit
@@ -594,6 +605,7 @@ function init() {
       beanName,
       roaster:    document.getElementById('roaster').value.trim(),
       origin:     document.getElementById('origin').value.trim(),
+      drinkDate:  document.getElementById('drink-date').value,
       process:    getProcessValue(),
       roastLevel: Number(document.getElementById('roast-level').value),
       brewMethod: document.getElementById('brew-method').value,
