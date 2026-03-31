@@ -99,8 +99,7 @@ function renderSuggestions(query) {
   const q = query.trim().toLowerCase();
 
   const candidates = masterTags.filter(t =>
-    !selectedTags.includes(t) &&
-    (q === '' || t.toLowerCase().includes(q))
+    q === '' || t.toLowerCase().includes(q)
   );
 
   candidates.forEach(tag => {
