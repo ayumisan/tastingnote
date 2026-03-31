@@ -127,18 +127,20 @@
 
         <div class="field">
           <label for="process">精製方法</label>
-          <div class="select-wrapper">
-            <select id="process">
-              <option value="">選択してください</option>
-              <option>ウォッシュド</option>
-              <option>ナチュラル</option>
-              <option>ハニー</option>
-              <option>ダブルウォッシュド</option>
-              <option>アナエロビックファーメンテーション</option>
-              <option value="__other__">その他（手入力）</option>
-            </select>
-          </div>
-          <input type="text" id="process-other" placeholder="精製方法を入力..." hidden style="margin-top:8px">
+          <input type="text" id="process" placeholder="例: ウォッシュド" list="process-list" autocomplete="off">
+          <datalist id="process-list">
+            <option value="ウォッシュド">
+            <option value="ナチュラル">
+            <option value="ハニー">
+            <option value="イエローハニー">
+            <option value="レッドハニー">
+            <option value="ブラックハニー">
+            <option value="ダブルウォッシュド">
+            <option value="アナエロビックファーメンテーション">
+            <option value="ウェットハル">
+            <option value="ワインプロセス">
+            <option value="マセレーション">
+          </datalist>
         </div>
 
         <div class="field">

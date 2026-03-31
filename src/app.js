@@ -219,29 +219,6 @@ function todayStr() {
   return new Date().toLocaleDateString('sv'); // YYYY-MM-DD
 }
 
-// ── Process field helpers ─────────────────────────────────────
-function getProcessValue() {
-  const sel = document.getElementById('process').value;
-  if (sel === '__other__') return document.getElementById('process-other').value.trim();
-  return sel;
-}
-
-function setProcessValue(value) {
-  const sel = document.getElementById('process');
-  const other = document.getElementById('process-other');
-  const knownOptions = [...sel.options].map(o => o.value).filter(v => v && v !== '__other__');
-  if (!value) {
-    sel.value = '';
-    other.hidden = true;
-  } else if (knownOptions.includes(value)) {
-    sel.value = value;
-    other.hidden = true;
-  } else {
-    sel.value = '__other__';
-    other.hidden = false;
-    other.value = value;
-  }
-}
 
 // ── Photo helpers ─────────────────────────────────────────────
 function compressImage(file, maxPx, quality = 0.75) {
@@ -537,7 +514,7 @@ function loadNoteIntoForm(note) {
   renderPhotoThumbnails();
 
   document.getElementById('memo').value = note.memo || '';
-  setProcessValue(note.process || '');
+  document.getElementById('process').value = note.process || '';
   document.getElementById('drink-date').value = note.drinkDate || todayStr();
   document.getElementById('submit-label').textContent = '更新する';
 }
@@ -554,7 +531,7 @@ function resetForm() {
   renderPhotoThumbnails();
   document.getElementById('roast-label').textContent = ROAST_LABELS[3];
   document.getElementById('submit-label').textContent = '記録する';
-  setProcessValue('');
+  document.getElementById('process').value = '';
   renderStars(document.getElementById('star-rating'), 0);
   refreshFormRadar();
   renderSelectedTags();
@@ -657,11 +634,6 @@ function init() {
     photoInput.value = '';
   });
 
-  // Process method "その他" toggle
-  document.getElementById('process').addEventListener('change', e => {
-    document.getElementById('process-other').hidden = e.target.value !== '__other__';
-  });
-
   // Roast level slider
   document.getElementById('roast-level').addEventListener('input', e => {
     document.getElementById('roast-label').textContent = ROAST_LABELS[e.target.value];
@@ -705,7 +677,7 @@ function init() {
       photos:     [...currentPhotos],
       drinkDate:  document.getElementById('drink-date').value,
       producer:   document.getElementById('producer').value.trim(),
-      process:    getProcessValue(),
+      process:    document.getElementById('process').value.trim(),
       roastLevel: Number(document.getElementById('roast-level').value),
       brewMethod: document.getElementById('brew-method').value,
       bitterness: Number(document.getElementById('sl-bitterness').value),
