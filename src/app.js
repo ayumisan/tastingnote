@@ -215,6 +215,30 @@ function diamond(cx, cy, r) {
 
 function clamp(v, min, max) { return Math.min(max, Math.max(min, Number(v) || min)); }
 
+// ── Process field helpers ─────────────────────────────────────
+function getProcessValue() {
+  const sel = document.getElementById('process').value;
+  if (sel === '__other__') return document.getElementById('process-other').value.trim();
+  return sel;
+}
+
+function setProcessValue(value) {
+  const sel = document.getElementById('process');
+  const other = document.getElementById('process-other');
+  const knownOptions = [...sel.options].map(o => o.value).filter(v => v && v !== '__other__');
+  if (!value) {
+    sel.value = '';
+    other.hidden = true;
+  } else if (knownOptions.includes(value)) {
+    sel.value = value;
+    other.hidden = true;
+  } else {
+    sel.value = '__other__';
+    other.hidden = false;
+    other.value = value;
+  }
+}
+
 // ── Photo helpers ─────────────────────────────────────────────
 function compressImage(file, maxPx, quality = 0.75) {
   return new Promise((resolve, reject) => {
@@ -323,14 +347,16 @@ function buildCard(note) {
   function tag(iconSvg, text) {
     return `<span class="tag">${iconSvg}${escHtml(text)}</span>`;
   }
-  const pinIcon  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
-  const fireIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>`;
-  const cupIcon  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/></svg>`;
+  const pinIcon     = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+  const fireIcon    = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>`;
+  const cupIcon     = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/></svg>`;
+  const dropletIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`;
 
   const tags = [
-    note.origin    ? tag(pinIcon,  note.origin)                    : '',
-    note.roastLevel ? tag(fireIcon, ROAST_LABELS[note.roastLevel]) : '',
-    note.brewMethod ? tag(cupIcon,  note.brewMethod)               : '',
+    note.origin     ? tag(pinIcon,     note.origin)                    : '',
+    note.process    ? tag(dropletIcon, note.process)                   : '',
+    note.roastLevel ? tag(fireIcon,    ROAST_LABELS[note.roastLevel])  : '',
+    note.brewMethod ? tag(cupIcon,     note.brewMethod)                : '',
   ].filter(Boolean).join('');
 
   card.innerHTML = `
@@ -429,6 +455,7 @@ function loadNoteIntoForm(note) {
   }
 
   document.getElementById('memo').value = note.memo || '';
+  setProcessValue(note.process || '');
   document.getElementById('submit-label').textContent = '更新する';
 }
 
@@ -443,6 +470,7 @@ function resetForm() {
   document.getElementById('photo-placeholder').hidden = false;
   document.getElementById('roast-label').textContent = ROAST_LABELS[3];
   document.getElementById('submit-label').textContent = '記録する';
+  setProcessValue('');
   renderStars(document.getElementById('star-rating'), 0);
   refreshFormRadar();
   renderSelectedTags();
@@ -523,6 +551,11 @@ function init() {
     }
   });
 
+  // Process method "その他" toggle
+  document.getElementById('process').addEventListener('change', e => {
+    document.getElementById('process-other').hidden = e.target.value !== '__other__';
+  });
+
   // Roast level slider
   document.getElementById('roast-level').addEventListener('input', e => {
     document.getElementById('roast-label').textContent = ROAST_LABELS[e.target.value];
@@ -561,6 +594,7 @@ function init() {
       beanName,
       roaster:    document.getElementById('roaster').value.trim(),
       origin:     document.getElementById('origin').value.trim(),
+      process:    getProcessValue(),
       roastLevel: Number(document.getElementById('roast-level').value),
       brewMethod: document.getElementById('brew-method').value,
       bitterness: Number(document.getElementById('sl-bitterness').value),

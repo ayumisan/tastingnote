@@ -75,6 +75,22 @@
         </div>
 
         <div class="field">
+          <label for="process">精製方法</label>
+          <div class="select-wrapper">
+            <select id="process">
+              <option value="">選択してください</option>
+              <option>ウォッシュド</option>
+              <option>ナチュラル</option>
+              <option>ハニー</option>
+              <option>ダブルウォッシュド</option>
+              <option>アナエロビックファーメンテーション</option>
+              <option value="__other__">その他（手入力）</option>
+            </select>
+          </div>
+          <input type="text" id="process-other" placeholder="精製方法を入力..." hidden style="margin-top:8px">
+        </div>
+
+        <div class="field">
           <label>焙煎度: <span id="roast-label">中煎り</span></label>
           <div class="range-row">
             <span class="range-edge">浅煎り</span>
