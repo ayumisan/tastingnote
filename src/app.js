@@ -17,7 +17,7 @@ let notes = [];
 let masterTags   = [...PRESET_TAGS]; // all known tags
 let selectedTags = [];               // tags for current form
 let currentRating = 0;
-let currentPhoto = null; // base64 string or null
+let currentPhotos = []; // array of base64 strings
 let pendingDeleteId = null;
 let editingId = null;    // id of note being edited, or null
 
@@ -266,6 +266,29 @@ function compressImage(file, maxPx, quality = 0.75) {
   });
 }
 
+function renderPhotoThumbnails() {
+  const container = document.getElementById('photo-thumbnails');
+  container.innerHTML = '';
+  currentPhotos.forEach((src, idx) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'photo-thumb';
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = `photo ${idx + 1}`;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'remove-photo';
+    btn.innerHTML = '×';
+    btn.setAttribute('aria-label', '写真を削除');
+    btn.addEventListener('click', () => {
+      currentPhotos.splice(idx, 1);
+      renderPhotoThumbnails();
+    });
+    wrap.append(img, btn);
+    container.appendChild(wrap);
+  });
+}
+
 // ── Star rating ───────────────────────────────────────────────
 function renderStars(container, value) {
   container.querySelectorAll('.star').forEach(btn => {
@@ -358,16 +381,25 @@ function buildCard(note) {
   const fireIcon    = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>`;
   const cupIcon     = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/></svg>`;
   const dropletIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`;
+  const homeIcon    = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`;
 
   const tags = [
     note.origin     ? tag(pinIcon,     note.origin)                    : '',
+    note.producer   ? tag(homeIcon,    note.producer)                  : '',
     note.process    ? tag(dropletIcon, note.process)                   : '',
     note.roastLevel ? tag(fireIcon,    ROAST_LABELS[note.roastLevel])  : '',
     note.brewMethod ? tag(cupIcon,     note.brewMethod)                : '',
   ].filter(Boolean).join('');
 
+  // support old single photo
+  const photos = note.photos || (note.photo ? [note.photo] : []);
+  const photoHtml = photos.length === 0 ? '' :
+    `<div class="card-photos${photos.length === 1 ? ' single' : ''}">${
+      photos.map((src, i) => `<img src="${src}" alt="photo ${i+1}">`).join('')
+    }</div>`;
+
   card.innerHTML = `
-    ${note.photo ? `<img class="card-photo" src="${note.photo}" alt="photo">` : ''}
+    ${photoHtml}
     <div class="card-header">
       <span class="card-bean-name">${escHtml(note.beanName)}</span>
       <div style="display:flex;gap:4px">
@@ -434,6 +466,7 @@ function loadNoteIntoForm(note) {
   document.getElementById('bean-name').value  = note.beanName  || '';
   document.getElementById('roaster').value    = note.roaster   || '';
   document.getElementById('origin').value     = note.origin    || '';
+  document.getElementById('producer').value   = note.producer  || '';
   document.getElementById('brew-method').value = note.brewMethod || '';
 
   const rl = note.roastLevel || 3;
@@ -453,13 +486,11 @@ function loadNoteIntoForm(note) {
   selectedTags = [...(note.tags || [])];
   renderSelectedTags();
 
-  if (note.photo) {
-    currentPhoto = note.photo;
-    const prev = document.getElementById('photo-preview');
-    prev.src = note.photo;
-    prev.hidden = false;
-    document.getElementById('photo-placeholder').hidden = true;
-  }
+  // support both old single photo and new array
+  currentPhotos = note.photos
+    ? [...note.photos]
+    : note.photo ? [note.photo] : [];
+  renderPhotoThumbnails();
 
   document.getElementById('memo').value = note.memo || '';
   setProcessValue(note.process || '');
@@ -474,9 +505,9 @@ function resetForm() {
   currentPhoto  = null;
   selectedTags  = [];
   editingId     = null;
+  currentPhotos = [];
   document.getElementById('drink-date').value = todayStr();
-  document.getElementById('photo-preview').hidden = true;
-  document.getElementById('photo-placeholder').hidden = false;
+  renderPhotoThumbnails();
   document.getElementById('roast-label').textContent = ROAST_LABELS[3];
   document.getElementById('submit-label').textContent = '記録する';
   setProcessValue('');
@@ -541,23 +572,19 @@ function init() {
   });
 
   // Photo upload
-  const uploadArea  = document.getElementById('photo-upload-area');
-  const photoInput  = document.getElementById('photo-input');
-  const photoPreview = document.getElementById('photo-preview');
-  const photoPlaceholder = document.getElementById('photo-placeholder');
-
-  uploadArea.addEventListener('click', () => photoInput.click());
+  const photoInput = document.getElementById('photo-input');
+  document.getElementById('photo-add-btn').addEventListener('click', () => photoInput.click());
   photoInput.addEventListener('change', async () => {
-    const file = photoInput.files[0];
-    if (!file) return;
+    const files = [...photoInput.files];
+    if (!files.length) return;
     try {
-      currentPhoto = await compressImage(file, MAX_PHOTO_PX);
-      photoPreview.src = currentPhoto;
-      photoPreview.hidden = false;
-      photoPlaceholder.hidden = true;
+      const compressed = await Promise.all(files.map(f => compressImage(f, MAX_PHOTO_PX)));
+      currentPhotos.push(...compressed);
+      renderPhotoThumbnails();
     } catch {
       showToast('写真の読み込みに失敗しました');
     }
+    photoInput.value = '';
   });
 
   // Process method "その他" toggle
@@ -605,7 +632,9 @@ function init() {
       beanName,
       roaster:    document.getElementById('roaster').value.trim(),
       origin:     document.getElementById('origin').value.trim(),
+      photos:     [...currentPhotos],
       drinkDate:  document.getElementById('drink-date').value,
+      producer:   document.getElementById('producer').value.trim(),
       process:    getProcessValue(),
       roastLevel: Number(document.getElementById('roast-level').value),
       brewMethod: document.getElementById('brew-method').value,

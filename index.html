@@ -45,18 +45,16 @@
       <form id="record-form">
 
         <div class="field">
-          <label>写真（ラベルなど）</label>
-          <div class="photo-upload" id="photo-upload-area">
-            <input type="file" id="photo-input" accept="image/*" hidden>
-            <img id="photo-preview" hidden alt="preview">
-            <div id="photo-placeholder">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                <circle cx="12" cy="13" r="4"/>
-              </svg>
-              <p>タップして写真を撮る・選ぶ</p>
-            </div>
-          </div>
+          <label>写真（複数枚可）</label>
+          <input type="file" id="photo-input" accept="image/*" multiple hidden>
+          <div id="photo-thumbnails" class="photo-thumbnails"></div>
+          <button type="button" class="photo-add-btn" id="photo-add-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span>タップして写真を追加</span>
+          </button>
         </div>
 
         <div class="field">
@@ -77,6 +75,11 @@
         <div class="field">
           <label for="origin">産地</label>
           <input type="text" id="origin" placeholder="例: エチオピア">
+        </div>
+
+        <div class="field">
+          <label for="producer">農園・精製所</label>
+          <input type="text" id="producer" placeholder="例: Worka Sakaro Washing Station">
         </div>
 
         <div class="field">
