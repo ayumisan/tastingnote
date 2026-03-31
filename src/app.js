@@ -537,6 +537,7 @@ function init() {
   loadMasterTags();
   updateCount();
   refreshFormRadar();
+  document.getElementById('drink-date').value = todayStr();
 
   // Tag picker
   document.getElementById('tag-add-btn').addEventListener('click', () => {
