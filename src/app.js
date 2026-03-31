@@ -19,6 +19,7 @@ let selectedTags = [];               // tags for current form
 let currentRating = 0;
 let currentPhoto = null; // base64 string or null
 let pendingDeleteId = null;
+let editingId = null;    // id of note being edited, or null
 
 // ── Storage ──────────────────────────────────────────────────
 function loadNotes() {
@@ -336,14 +337,22 @@ function buildCard(note) {
     ${note.photo ? `<img class="card-photo" src="${note.photo}" alt="photo">` : ''}
     <div class="card-header">
       <span class="card-bean-name">${escHtml(note.beanName)}</span>
-      <button class="delete-btn" aria-label="削除">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="3 6 5 6 21 6"/>
-          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-          <path d="M10 11v6m4-6v6"/>
-          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-        </svg>
-      </button>
+      <div style="display:flex;gap:4px">
+        <button class="edit-btn" aria-label="編集">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+        <button class="delete-btn" aria-label="削除">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6m4-6v6"/>
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          </svg>
+        </button>
+      </div>
     </div>
     <div class="card-date">${dateStr}</div>
     ${tags ? `<div class="card-tags">${tags}</div>` : ''}
@@ -356,6 +365,12 @@ function buildCard(note) {
   `;
 
   buildRadar(card.querySelector('.card-radar svg'), note, 160);
+
+  card.querySelector('.edit-btn').addEventListener('click', () => {
+    loadNoteIntoForm(note);
+    switchTab('record');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
 
   card.querySelector('.delete-btn').addEventListener('click', () => {
     pendingDeleteId = note.id;
@@ -378,15 +393,56 @@ function updateCount() {
   el.textContent = notes.length > 0 ? notes.length : '';
 }
 
+// ── Load note into form (edit mode) ──────────────────────────
+function loadNoteIntoForm(note) {
+  resetForm();
+  editingId = note.id;
+
+  document.getElementById('bean-name').value  = note.beanName  || '';
+  document.getElementById('roaster').value    = note.roaster   || '';
+  document.getElementById('origin').value     = note.origin    || '';
+  document.getElementById('brew-method').value = note.brewMethod || '';
+
+  const rl = note.roastLevel || 3;
+  document.getElementById('roast-level').value = rl;
+  document.getElementById('roast-label').textContent = ROAST_LABELS[rl];
+
+  ['bitterness', 'acidity', 'sweetness', 'body'].forEach(k => {
+    const val = note[k] || 3;
+    document.getElementById(`sl-${k}`).value = val;
+    document.getElementById(`val-${k}`).textContent = `${val}/5`;
+  });
+  refreshFormRadar();
+
+  currentRating = note.rating || 0;
+  renderStars(document.getElementById('star-rating'), currentRating);
+
+  selectedTags = [...(note.tags || [])];
+  renderSelectedTags();
+
+  if (note.photo) {
+    currentPhoto = note.photo;
+    const prev = document.getElementById('photo-preview');
+    prev.src = note.photo;
+    prev.hidden = false;
+    document.getElementById('photo-placeholder').hidden = true;
+  }
+
+  document.getElementById('memo').value = note.memo || '';
+  document.getElementById('submit-label').textContent = '更新する';
+}
+
 // ── Reset form ────────────────────────────────────────────────
 function resetForm() {
   document.getElementById('record-form').reset();
   currentRating = 0;
   currentPhoto  = null;
   selectedTags  = [];
+  editingId     = null;
   document.getElementById('photo-preview').hidden = true;
   document.getElementById('photo-placeholder').hidden = false;
   document.getElementById('roast-label').textContent = ROAST_LABELS[3];
+  document.getElementById('submit-label').textContent = '記録する';
   renderStars(document.getElementById('star-rating'), 0);
   refreshFormRadar();
   renderSelectedTags();
@@ -500,9 +556,7 @@ function init() {
     const beanName = document.getElementById('bean-name').value.trim();
     if (!beanName) return;
 
-    const note = {
-      id:         uuid(),
-      createdAt:  Date.now(),
+    const fields = {
       photo:      currentPhoto,
       beanName,
       roaster:    document.getElementById('roaster').value.trim(),
@@ -518,11 +572,18 @@ function init() {
       memo:       document.getElementById('memo').value.trim(),
     };
 
-    notes.unshift(note);
+    if (editingId) {
+      const idx = notes.findIndex(n => n.id === editingId);
+      if (idx !== -1) notes[idx] = { ...notes[idx], ...fields };
+      showToast('更新しました');
+    } else {
+      notes.unshift({ id: uuid(), createdAt: Date.now(), ...fields });
+      showToast('記録しました');
+    }
+
     saveNotes();
     updateCount();
     resetForm();
-    showToast('記録しました');
     switchTab('list');
   });
 

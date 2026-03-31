@@ -434,7 +434,8 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 8px;
   margin-bottom: 10px;
 }
-.delete-btn {
+.delete-btn,
+.edit-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -444,7 +445,9 @@ input[type="range"]::-moz-range-thumb {
   transition: color 0.15s;
 }
 .delete-btn:hover { color: var(--danger); }
-.delete-btn svg { width: 18px; height: 18px; display: block; }
+.edit-btn:hover   { color: var(--accent); }
+.delete-btn svg,
+.edit-btn svg { width: 18px; height: 18px; display: block; }
 .card-stars { font-size: 0.9rem; color: var(--accent); letter-spacing: 1px; margin-top: 6px; }
 
 /* ── Empty state ─────────────────────────────────────── */
