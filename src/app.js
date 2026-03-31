@@ -266,50 +266,6 @@ function renderPhotoThumbnails() {
   });
 }
 
-// ── OCR ───────────────────────────────────────────────────────
-async function runOCR(imageSrc) {
-  const dialog   = document.getElementById('ocr-dialog');
-  const fill     = document.getElementById('ocr-progress-fill');
-  const status   = document.getElementById('ocr-status-text');
-  const textarea = document.getElementById('ocr-textarea');
-  const progWrap = document.getElementById('ocr-progress-wrap');
-
-  textarea.value = '';
-  fill.style.width = '0%';
-  progWrap.hidden = false;
-  dialog.showModal();
-
-  try {
-    const { data: { text } } = await Tesseract.recognize(imageSrc, 'jpn+eng', {
-      logger: m => {
-        if (m.status === 'loading tesseract core') {
-          status.textContent = '初期化中...（初回のみ少し時間がかかります）';
-          fill.style.width = '10%';
-        } else if (m.status === 'loading language traineddata') {
-          status.textContent = '言語データを読み込み中...';
-          fill.style.width = '30%';
-        } else if (m.status === 'recognizing text') {
-          fill.style.width = `${30 + m.progress * 70}%`;
-          status.textContent = `認識中... ${Math.round(m.progress * 100)}%`;
-        }
-      },
-    });
-    fill.style.width = '100%';
-    status.textContent = '完了';
-    textarea.value = text.trim();
-    progWrap.hidden = true;
-  } catch (e) {
-    status.textContent = 'スキャンに失敗しました';
-    progWrap.hidden = true;
-  }
-}
-
-function getOcrSelection() {
-  const ta = document.getElementById('ocr-textarea');
-  const { selectionStart: s, selectionEnd: e, value } = ta;
-  return (s !== e ? value.slice(s, e) : value).trim();
-}
-
 // ── Star rating ───────────────────────────────────────────────
 function renderStars(container, value) {
   container.querySelectorAll('.star').forEach(btn => {
@@ -359,8 +315,8 @@ function renderList() {
   let filtered = notes.filter(n => {
     if (query && ![n.beanName, n.roaster, n.origin, ...(n.tags || [])].some(
       v => v && v.toLowerCase().includes(query))) return false;
-    if (dateFrom && (n.drinkDate || '') < dateFrom) return false;
-    if (dateTo   && (n.drinkDate || '') > dateTo)   return false;
+    if (dateFrom && n.drinkDate && n.drinkDate < dateFrom) return false;
+    if (dateTo   && n.drinkDate && n.drinkDate > dateTo)   return false;
     return true;
   });
 
@@ -591,31 +547,6 @@ function init() {
   // Tab switching
   document.querySelectorAll('.tab').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-  });
-
-  // OCR
-  document.getElementById('scan-btn').addEventListener('click', () => {
-    if (currentPhotos.length === 0) {
-      showToast('先に写真を追加してください');
-      return;
-    }
-    runOCR(currentPhotos[0]);
-  });
-  document.getElementById('ocr-close').addEventListener('click', () => {
-    document.getElementById('ocr-dialog').close();
-  });
-  document.querySelectorAll('.ocr-assign').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const text = getOcrSelection();
-      if (!text) return;
-      const field = document.getElementById(btn.dataset.field);
-      if (btn.dataset.append) {
-        field.value = field.value ? field.value + '\n' + text : text;
-      } else {
-        field.value = text;
-      }
-      showToast(`「${btn.textContent}」に設定しました`);
-    });
   });
 
   // Photo upload
