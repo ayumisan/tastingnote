@@ -73,11 +73,9 @@ function renderSelectedTags() {
 }
 
 function selectTag(tag) {
-  if (!selectedTags.includes(tag)) {
-    selectedTags.push(tag);
-    addToMaster(tag);
-    renderSelectedTags();
-  }
+  selectedTags.push(tag);
+  addToMaster(tag);
+  renderSelectedTags();
   closePicker();
 }
 
