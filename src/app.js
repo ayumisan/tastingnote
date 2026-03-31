@@ -1,11 +1,9 @@
-'use strict';
+import { uuid, clamp, todayStr, escHtml, diamond, filterNotes, sortNotes, ROAST_LABELS } from './utils.js';
 
 // ── Constants ────────────────────────────────────────────────
 const STORAGE_KEY = 'tastingnote:notes';
 const TAGS_KEY    = 'tastingnote:tags';
 const MAX_PHOTO_PX = 800;
-
-const ROAST_LABELS = ['', '浅煎り', '中浅煎り', '中煎り', '中深煎り', '深煎り'];
 const PRESET_TAGS  = [
   'フルーティー', 'ベリー系', 'シトラス', 'フローラル',
   'チョコレート', 'キャラメル', 'ナッティ', 'バニラ',
@@ -129,13 +127,6 @@ function renderSuggestions(query) {
   }
 }
 
-// ── UUID ─────────────────────────────────────────────────────
-function uuid() {
-  return crypto.randomUUID
-    ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
-
 // ── Radar Chart (SVG) ─────────────────────────────────────────
 function buildRadar(svgEl, { bitterness, acidity, sweetness, body }, size = 220) {
   const cx = size / 2;
@@ -209,15 +200,6 @@ function buildRadar(svgEl, { bitterness, acidity, sweetness, body }, size = 220)
   });
 }
 
-function diamond(cx, cy, r) {
-  return `${cx},${cy - r} ${cx + r},${cy} ${cx},${cy + r} ${cx - r},${cy}`;
-}
-
-function clamp(v, min, max) { return Math.min(max, Math.max(min, Number(v) || min)); }
-
-function todayStr() {
-  return new Date().toLocaleDateString('sv'); // YYYY-MM-DD
-}
 
 
 // ── Photo helpers ─────────────────────────────────────────────
@@ -312,19 +294,7 @@ function renderList() {
   const listEl   = document.getElementById('notes-list');
   const emptyMsg = document.getElementById('empty-msg');
 
-  let filtered = notes.filter(n => {
-    if (query && ![n.beanName, n.roaster, n.origin, ...(n.tags || [])].some(
-      v => v && v.toLowerCase().includes(query))) return false;
-    if (dateFrom && n.drinkDate && n.drinkDate < dateFrom) return false;
-    if (dateTo   && n.drinkDate && n.drinkDate > dateTo)   return false;
-    return true;
-  });
-
-  filtered = [...filtered].sort((a, b) => {
-    if (sort === 'oldest')      return a.createdAt - b.createdAt;
-    if (sort === 'rating-desc') return b.rating - a.rating;
-    return b.createdAt - a.createdAt; // newest
-  });
+  let filtered = sortNotes(filterNotes(notes, { query, dateFrom, dateTo }), sort);
 
   listEl.innerHTML = '';
   emptyMsg.hidden = filtered.length > 0;
@@ -420,14 +390,6 @@ function buildCard(note) {
   });
 
   return card;
-}
-
-function escHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }
 
 function updateCount() {
